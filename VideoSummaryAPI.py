@@ -1,6 +1,8 @@
 import psycopg2
 from psycopg2 import sql
 from flask import Flask, jsonify, request
+from datetime import datetime
+from dateutil import parser
 # from flask_cors import CORS
 
 app = Flask(__name__)
@@ -43,10 +45,21 @@ def get_data():
 #http://127.0.0.1:8080/api/timelines
 @app.route('/api/timelines', methods=['GET'])
 def get_timelines_data():
-    query = sql.SQL('select min(timestamps) as "starting_time", max(timestamps) as "ending_time" from scene_table')
+    # query = sql.SQL('select min(timestamps) as "starting_time", max(timestamps) as "ending_time" from scene_table')
+    
+    query = sql.SQL('SELECT to_char(min(timestamps), \'YYYY-MM-DD"T"HH24:MI\') as starting_time, to_char(max(timestamps), \'YYYY-MM-DD"T"HH24:MI\') as ending_time FROM scene_table')
+
+
     cur.execute(query)
     results = cur.fetchall()
-    return {"starting_time":results[0][0], "ending_time":results[0][1]}
+    print(results)
+    print("------------")
+    # Parse the date strings from the database
+    starting_time_str = results[0][0]
+    ending_time_str = results[0][1]
+
+    return {"starting_time": starting_time_str, "ending_time": ending_time_str}
+
 
 #http://127.0.0.1:8080/api/timepersecond?start_timestamp=2023-09-11%2012:00:00&end_timestamp=2023-09-11%2023:00:00
 #http://127.0.0.1:8080/api/timepersecond?start_timestamp=2023-09-11%2012:00:00&end_timestamp=2023-09-11%2023:00:00
