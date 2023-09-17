@@ -1,22 +1,24 @@
 import psycopg2
 from psycopg2 import sql
 from flask import Flask, jsonify, request
-# from flask_cors import CORS
+from flask_cors import CORS
+
 
 app = Flask(__name__)
-# CORS(app)
+cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 
 db_params = {
-        'password': '1234',
-        'user': 'postgres',
-        'host': 'localhost',
-        'port': '5432',
-        'database': 'video_token_db'
-    }
+    'password': 'Bhanu@001',
+    'user': 'postgres',
+    'host': 'localhost',
+    'port': '5432',
+    'database': 'postgres'
+}
 conn = psycopg2.connect(**db_params)
 cur = conn.cursor()
 
-#http://localhost:8080/api/data?start_timestamp=2023-09-11%2012:00:00&end_timestamp=2023-09-11%2023:00:00
+# Configure CORS to allow requests from http://localhost:3000
+# http://localhost:8080/api/data?start_timestamp=2023-09-11%2012:00:00&end_timestamp=2023-09-11%2023:00:00
 @app.route('/api/data', methods=['GET'])
 def get_data():
     start_timestamp = request.args.get('start_timestamp')
@@ -26,27 +28,29 @@ def get_data():
 
         # Fetch all the column names
         columns = cur.fetchall()
-        
+
         query = "SELECT * FROM scene_table WHERE timestamps >= %s AND timestamps <= %s order by timestamps"
-        cur.execute(query,[start_timestamp, end_timestamp])
+        cur.execute(query, [start_timestamp, end_timestamp])
         results = cur.fetchall()
-        response=[]
+        response = []
         for row in results:
-            record={}
+            record = {}
             for col, val in enumerate(row):
-                record[columns[col][0]]=val
+                record[columns[col][0]] = val
             response.append(record)
-        return jsonify(response) 
+        return jsonify(response)
     except Exception as e:
         return jsonify({"error": str(e)})
 
-#http://127.0.0.1:8080/api/timelines
+
+# http://127.0.0.1:8080/api/timelines
 @app.route('/api/timelines', methods=['GET'])
 def get_timelines_data():
     query = sql.SQL('select min(timestamps) as "starting_time", max(timestamps) as "ending_time" from scene_table')
     cur.execute(query)
     results = cur.fetchall()
-    return {"starting_time":results[0][0], "ending_time":results[0][1]}
+    return {"starting_time": results[0][0], "ending_time": results[0][1]}
+
 
 #http://127.0.0.1:8080/api/timepersecond?start_timestamp=2023-09-11%2012:00:00&end_timestamp=2023-09-11%2023:00:00
 #http://127.0.0.1:8080/api/timepersecond?start_timestamp=2023-09-11%2012:00:00&end_timestamp=2023-09-11%2023:00:00
@@ -75,6 +79,6 @@ def get_timelines_data_per_second():
     return jsonify(response) 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+    app.run(host = 'localhost', port = 5000, debug = True, threaded = False)
     cur.close()
     conn.close()
